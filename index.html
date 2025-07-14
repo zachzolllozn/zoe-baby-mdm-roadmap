@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zoe Baby: Mosyle MDM Implementation Roadmap by Zollo Networking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Neutral Professional -->
+    <!-- Application Structure Plan: A single-page visual roadmap designed for client understanding. It presents the MDM implementation project as a linear flow of key phases, each represented by a card with an icon, title, and a concise benefit statement. The structure uses a responsive flexbox layout to arrange phases horizontally on large screens and stack them vertically on smaller screens, with visual connectors indicating progression. This design prioritizes clarity and ease of consumption for a non-technical audience. The "Project Hours Breakdown" section now displays proportional effort rather than exact hours. A new "Value of Your Investment" section is added to clearly articulate benefits. Sections now have alternating background colors and subtle top borders for even clearer visual separation. A new "Project Investment Summary" section is added at the bottom to outline the fixed project cost and hourly rate for support. -->
+    <!-- Visualization & Content Choices: Report Info: Project phases & benefits -> Goal: Inform/Organize -> Viz: Styled HTML cards with Unicode icons and brief text -> Interaction: Static visual flow -> Justification: Provides a high-level, easy-to-digest overview of the project journey and its value for the client, without technical jargon or complex interactivity. Confirms NO SVG/Mermaid. | Report Info: Time taken for each component -> Goal: Inform/Compare -> Viz: Horizontal Bar Chart (Chart.js) -> Interaction: Static, but clear labels and tooltips (showing actual hours on hover) -> Justification: A horizontal bar chart effectively compares proportional effort across different categories, making the time distribution visually apparent without numerical clutter. Confirms NO SVG/Mermaid. | Report Info: Client Value Proposition -> Goal: Inform -> Viz: Styled HTML cards with Unicode icons and concise benefit statements -> Interaction: Static -> Justification: Presents key benefits in a scannable, visually appealing format, directly addressing the client's "why" for the investment. Confirms NO SVG/Mermaid. | Report Info: Project Cost Summary -> Goal: Inform -> Viz: Styled HTML text block -> Interaction: Static -> Justification: Provides a clear, concise summary of the fixed project cost and outlines the hourly rate for additional support, ensuring financial transparency. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+            color: #1e293b; /* slate-800 */
+        }
+        .section-title {
+            font-size: 1.875rem; /* text-3xl */
+            font-weight: 700;
+            color: #0f172a; /* slate-900 */
+            margin-bottom: 1rem;
+        }
+        .section-subtitle {
+            font-size: 1.125rem; /* text-lg */
+            color: #475569; /* slate-600 */
+            max-width: 48rem; /* max-w-2xl */
+            margin-left: auto;
+            margin-right: auto;
+            margin-bottom: 2rem;
+        }
+        .phase-card {
+            background-color: white;
+            border-radius: 0.75rem; /* rounded-xl */
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            text-align: center;
+            flex-shrink: 0;
+            width: 100%;
+            max-width: 280px; /* Max width for individual cards */
+            margin: 0.75rem; /* Space between cards */
+            position: relative; /* Needed for numbering */
+        }
+        .phase-number {
+            position: absolute;
+            top: 0.75rem;
+            left: 0.75rem;
+            background-color: #3b82f6; /* blue-500 */
+            color: white;
+            border-radius: 9999px; /* full circle */
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.875rem; /* text-sm */
+        }
+        .flow-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start; /* Align items to the top */
+            position: relative;
+            padding-bottom: 2rem; /* Space for arrows */
+        }
+
+        /* Arrows for desktop */
+        @media (min-width: 1024px) {
+            .flow-container .phase-card:not(:last-child)::after {
+                content: '→';
+                position: absolute;
+                right: -3.5rem; /* Adjust based on card width and desired gap */
+                top: 50%;
+                transform: translateY(-50%);
+                font-size: 3rem; /* Large arrow */
+                color: #3b82f6; /* blue-500 */
+                z-index: 10;
+            }
+            .flow-container .phase-card {
+                position: relative;
+                margin-right: 4rem; /* Space for arrow */
+            }
+            .flow-container .phase-card:last-child {
+                margin-right: 0;
+            }
+        }
+
+        /* Arrows for mobile/tablet (vertical flow) */
+        @media (max-width: 1023px) {
+            .flow-container .phase-card:not(:last-child)::after {
+                content: '↓';
+                position: absolute;
+                bottom: -2rem; /* Below the card */
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 3rem; /* Large arrow */
+                color: #3b82f6; /* blue-500 */
+                z-index: 10;
+            }
+            .flow-container .phase-card {
+                position: relative;
+                margin-bottom: 3rem; /* Space for arrow */
+            }
+            .flow-container .phase-card:last-child {
+                margin-bottom: 0;
+            }
+        }
+
+        /* Styles for the new chart container */
+        .chart-visual-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px; /* Max width for chart container */
+            margin-left: auto;
+            margin-right: auto;
+            height: 400px; /* Base height */
+            padding: 1rem; /* Padding inside container */
+            background-color: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        @media (min-width: 768px) {
+            .chart-visual-container {
+                height: 500px; /* Taller on larger screens */
+            }
+        }
+        .value-card {
+            background-color: white;
+            border-radius: 0.75rem; /* rounded-xl */
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-align: left; /* Align text left within card */
+        }
+        .value-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+<body class="bg-slate-50">
+
+    <main>
+        <section id="roadmap" class="py-20 sm:py-28 text-center bg-slate-50 border-b border-t border-slate-200">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <h1 class="text-4xl md:text-5xl font-bold tracking-tight text-slate-900">Zoe Baby: Your Journey to Simplified Device Management</h1>
+                <p class="mt-6 max-w-3xl mx-auto text-lg text-slate-600">This roadmap outlines the key phases of your Mosyle MDM implementation project. We at Zollo Networking will guide you through each step, ensuring a smooth transition to a more secure, efficient, and easily managed Apple device environment for your team, supporting your focus on quality and empowering parents.</p>
+
+                <div class="flow-container mt-12">
+                    <div class="phase-card">
+                        <div class="phase-number">1</div>
+                        <div class="text-5xl mb-4">💡</div>
+                        <h3 class="font-bold text-xl text-slate-900 mb-2">Discovery & Planning</h3>
+                        <p class="text-slate-600 text-sm">We start by understanding Zoe Baby's unique operational needs and current setup to craft a tailored MDM strategy for your team's devices.</p>
+                        <p class="mt-3 text-blue-600 font-semibold">Benefit: A clear, customized plan for Zoe Baby's success.</p>
+                    </div>
+
+                    <div class="phase-card">
+                        <div class="phase-number">2</div>
+                        <div class="text-5xl mb-4">🍎</div>
+                        <h3 class="font-bold text-xl text-slate-900 mb-2">Apple Business Foundation</h3>
+                        <p class="text-slate-600 text-sm">Setting up Apple Business Manager to enable automated enrollment and efficient app distribution for your team's Apple devices.</p>
+                        <p class="mt-3 text-blue-600 font-semibold">Benefit: Seamless "zero-touch" device onboarding for Zoe Baby.</p>
+                    </div>
+
+                    <div class="phase-card">
+                        <div class="phase-number">3</div>
+                        <div class="text-5xl mb-4">⚙️</div>
+                        <h3 class="font-bold text-xl text-slate-900 mb-2">Custom MDM Build</h3>
+                        <p class="text-slate-600 text-sm">Configuring Mosyle with Zoe Baby's specific security policies, network settings, and application deployment rules to protect sensitive company data.</p>
+                        <p class="mt-3 text-blue-600 font-semibold">Benefit: Enhanced security & automated management for Zoe Baby's operations.</p>
+                    </div>
+
+                    <div class="phase-card">
+                        <div class="phase-number">4</div>
+                        <div class="text-5xl mb-4">📱</div>
+                        <h3 class="font-bold text-xl text-slate-900 mb-2">Device Onboarding</h3>
+                        <p class="text-slate-600 text-sm">Enrolling your team's devices into Mosyle and thoroughly testing all configurations to ensure everything works perfectly for Zoe Baby's workflow.</p>
+                        <p class="mt-3 text-blue-600 font-semibold">Benefit: All Zoe Baby devices ready for work, securely and efficiently.</p>
+                    </div>
+
+                    <div class="phase-card">
+                        <div class="phase-number">5</div>
+                        <div class="text-5xl mb-4">🎓</div>
+                        <h3 class="font-bold text-xl text-slate-900 mb-2">Empowerment & Handover</h3>
+                        <p class="text-slate-600 text-sm">Providing Zoe Baby's team with comprehensive training and documentation to confidently manage your new MDM system independently.</p>
+                        <p class="mt-3 text-blue-600 font-semibold">Benefit: Long-term self-sufficiency & control for Zoe Baby's internal team.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="project-hours-breakdown" class="py-20 sm:py-28 bg-white border-b border-slate-200">
+            <div class="container mx-auto py-12 px-4 sm:px-6 lg:px-8">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl md:text-4xl font-bold text-slate-900">Project Effort Distribution for Zoe Baby</h2>
+                    <p class="mt-4 text-lg text-slate-600">This chart illustrates the proportional effort allocated to each key phase of your Mosyle MDM implementation project with Zollo Networking.</p>
+                </div>
+
+                <div class="chart-visual-container">
+                    <canvas id="hoursBreakdownChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="value-of-investment" class="py-20 sm:py-28 bg-slate-50 border-b border-slate-200">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="section-title">The Value of Your Investment for Zoe Baby</h2>
+                    <p class="section-subtitle">Investing in Mosyle MDM with Zollo Networking isn't just about managing devices; it's about empowering Zoe Baby's team, enhancing security, and boosting overall efficiency. Here’s how this project delivers tangible value to your business.</p>
+                </div>
+                <div id="valueCards" class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
+                    <div class="value-card flex items-start space-x-4">
+                       <div class="text-3xl flex-shrink-0">🤖</div>
+                        <div>
+                            <h4 class="font-bold text-slate-900">Automation & Efficiency</h4>
+                            <p class="text-slate-600 text-sm mt-1">Drastically reduce manual device setup from 30 minutes to under 5. Free up valuable internal resources at Zoe Baby.</p>
+                        </div>
+                    </div>
+                    <div class="value-card flex items-start space-x-4">
+                       <div class="text-3xl flex-shrink-0">🛡️</div>
+                        <div>
+                            <h4 class="font-bold text-slate-900">Enhanced Security</h4>
+                            <p class="text-slate-600 text-sm mt-1">Centralize and enforce critical security policies like encryption, strong passcodes, and timely OS updates across all Zoe Baby devices.</p>
+                        </div>
+                    </div>
+                    <div class="value-card flex items-start space-x-4">
+                       <div class="text-3xl flex-shrink-0">⚙️</div>
+                        <div>
+                            <h4 class="font-bold text-slate-900">Streamlined Management</h4>
+                            <p class="text-slate-600 text-sm mt-1">Simplify ongoing tasks like app deployment, remote troubleshooting, and secure employee offboarding for Zoe Baby's team.</p>
+                        </div>
+                    </div>
+                    <div class="value-card flex items-start space-x-4">
+                       <div class="text-3xl flex-shrink-0">💰</div>
+                        <div>
+                            <h4 class="font-bold text-slate-900">Long-Term Cost Savings</h4>
+                            <p class="text-slate-600 text-sm mt-1">Reduce long-term labor costs and minimize risks of costly security incidents and device downtime for Zoe Baby.</p>
+                        </div>
+                    </div>
+                    <div class="value-card flex items-start space-x-4">
+                       <div class="text-3xl flex-shrink-0">🎓</div>
+                        <div>
+                            <h4 class="font-bold text-slate-900">Empowered Team</h4>
+                            <p class="text-slate-600 text-sm mt-1">Through comprehensive knowledge transfer, Zoe Baby's internal team will gain the skills to confidently manage your Apple fleet independently.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="licensing" class="py-20 sm:py-28 bg-white">
+             <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center">
+                    <h2 class="section-title">Mosyle Software Licensing for Zoe Baby</h2>
+                    <p class="section-subtitle">It's crucial to distinguish your implementation service fees from the recurring software costs. This section clarifies Mosyle's licensing tiers. Use this to guide Zoe Baby in selecting the right plan for your needs, ensuring transparency about all project-related expenses.</p>
+                </div>
+                <div class="mt-12 max-w-4xl mx-auto space-y-8">
+                    <div>
+                        <label for="deviceCount" class="block text-sm font-medium text-slate-700">Number of Devices: <span id="deviceCountValue" class="font-bold text-blue-600">30</span></label>
+                         <input id="deviceCount" type="range" min="10" max="50" value="30" step="1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-2">
+                    </div>
+                    <fieldset>
+                        <legend class="sr-only">Mosyle Tier</legend>
+                        <div id="mosyleTiers" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        </div>
+                    </fieldset>
+                    <div id="licenseCostResult" class="mt-8 text-center bg-white rounded-lg p-6 max-w-md mx-auto shadow-sm">
+                        <p class="font-medium text-slate-700">Estimated Annual Software Cost:</p>
+                        <p id="annualLicenseCost" class="text-3xl font-bold text-blue-600 mt-2">$360</p>
+                        <p class="text-sm text-slate-500 mt-1">This is a separate cost paid directly to Mosyle.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="project-investment-summary" class="py-20 sm:py-28 bg-slate-50 border-t border-slate-200">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h2 class="section-title">Your Project Investment with Zollo Networking</h2>
+                <p class="section-subtitle">This section provides a clear overview of the investment required for your Mosyle MDM implementation. Our goal is full transparency, ensuring you understand both the fixed project cost and how additional support is handled.</p>
+
+                <div class="mt-12 p-8 bg-white rounded-xl shadow-lg max-w-2xl mx-auto">
+                    <p class="text-2xl md:text-3xl font-bold text-slate-900">
+                        Fixed Project Cost (Initial 5 Steps): <span class="text-blue-600">$7,500</span>
+                    </p>
+                    <p class="mt-4 text-lg text-slate-700">
+                        This fixed amount covers the complete setup of your Mosyle MDM system, including:
+                    </p>
+                    <ul class="list-disc list-inside text-left text-slate-600 mt-4 space-y-2 max-w-md mx-auto">
+                        <li>Discovery & Planning</li>
+                        <li>Apple Business Foundation</li>
+                        <li>Custom MDM Build</li>
+                        <li>Device Onboarding</li>
+                        <li>Empowerment & Handover</li>
+                    </ul>
+                    <p class="mt-8 text-lg text-slate-700">
+                        Any support or additional services beyond these initial five steps will be billed at our standard hourly rate.
+                    </p>
+                    <p class="mt-2 text-xl font-semibold text-blue-600">
+                        Hourly Rate for Additional Support: $TBD/hour
+                    </p>
+                    <p class="mt-4 text-sm text-slate-500">
+                        (A detailed hourly rate will be provided in your formal proposal.)
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="bg-slate-800 text-slate-400 py-8 text-center text-sm">
+        <p>&copy; 2025 Zoe Baby MDM Implementation Roadmap by Zollo Networking. Designed to simplify your IT journey.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const state = {
+                deviceCount: 30,
+                mosyleTier: 'premium'
+            };
+
+            const mosyleData = {
+                premium: { name: "Business PREMIUM", price_per_device_per_month: 1, description: "Core MDM capabilities, plus additional features. Ideal for most small businesses." },
+                fuse: { name: "Business FUSE", price_per_device_per_month: 3, description: "Advanced management, identity services, and endpoint security for macOS." }
+            };
+
+            const deviceCountSlider = document.getElementById('deviceCount');
+            const deviceCountValue = document.getElementById('deviceCountValue');
+            const mosyleTiersContainer = document.getElementById('mosyleTiers');
+            const annualLicenseCostDisplay = document.getElementById('annualLicenseCost');
+
+            function updateLicenseCost() {
+                const tier = mosyleData[state.mosyleTier];
+                const annualCost = tier.price_per_device_per_month * state.deviceCount * 12;
+                annualLicenseCostDisplay.textContent = `$${annualCost.toLocaleString()}`;
+            }
+
+            function setupEventListeners() {
+                deviceCountSlider.addEventListener('input', (e) => {
+                    state.deviceCount = parseInt(e.target.value);
+                    deviceCountValue.textContent = state.deviceCount;
+                    updateLicenseCost();
+                });
+
+                mosyleTiersContainer.addEventListener('change', (e) => {
+                    if (e.target.name === 'mosyle-tier') {
+                        state.mosyleTier = e.target.value;
+                        updateLicenseCost();
+                    }
+                });
+            }
+
+            function populateDynamicContent() {
+                mosyleTiersContainer.innerHTML = '';
+                Object.keys(mosyleData).forEach((key) => {
+                    const tier = mosyleData[key];
+                    const isChecked = key === state.mosyleTier;
+                    const tierHtml = `
+                        <div class="relative">
+                            <input class="sr-only peer" type="radio" value="${key}" name="mosyle-tier" id="tier-${key}" ${isChecked ? 'checked' : ''}>
+                            <label class="flex flex-col p-6 bg-white border border-slate-300 rounded-lg cursor-pointer focus:outline-none hover:bg-slate-50 peer-checked:ring-2 peer-checked:ring-blue-500 peer-checked:border-transparent" for="tier-${key}">
+                                <span class="text-lg font-bold text-slate-800">${tier.name}</span>
+                                <span class="mt-2 text-sm text-slate-600">${tier.description}</span>
+                                <span class="mt-4 font-bold text-xl text-blue-600">$${tier.price_per_device_per_month.toFixed(2)} / device / month</span>
+                            </label>
+                        </div>
+                    `;
+                    mosyleTiersContainer.innerHTML += tierHtml;
+                });
+            }
+            
+            function init() {
+                populateDynamicContent();
+                setupEventListeners();
+                updateLicenseCost();
+
+                const labelsHoursBreakdown = [
+                    'Planning & Discovery',
+                    'Apple Business Manager Setup',
+                    'Mosyle System Configuration',
+                    'Device Enrollment & Testing',
+                    'Knowledge Transfer & Docs'
+                ];
+                const dataHoursBreakdown = [5, 5, 10, 15, 3];
+
+                const ctxHoursBreakdown = document.getElementById('hoursBreakdownChart').getContext('2d');
+                new Chart(ctxHoursBreakdown, {
+                    type: 'bar',
+                    data: {
+                        labels: labelsHoursBreakdown,
+                        datasets: [{
+                            label: 'Estimated Hours',
+                            data: dataHoursBreakdown,
+                            backgroundColor: [
+                                'rgba(59, 130, 246, 0.7)',
+                                'rgba(16, 185, 129, 0.7)',
+                                'rgba(249, 115, 22, 0.7)',
+                                'rgba(139, 92, 246, 0.7)',
+                                'rgba(236, 72, 153, 0.7)'
+                            ],
+                            borderColor: [
+                                'rgba(59, 130, 246, 1)',
+                                'rgba(16, 185, 129, 1)',
+                                'rgba(249, 115, 22, 1)',
+                                'rgba(139, 92, 246, 1)',
+                                'rgba(236, 72, 153, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        indexAxis: 'y',
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            title: {
+                                display: true,
+                                text: 'Proportional Effort by Project Component',
+                                font: {
+                                    size: 16,
+                                    weight: 'bold'
+                                },
+                                color: '#1e293b'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                title: {
+                                    display: true,
+                                    text: 'Relative Effort',
+                                    font: {
+                                        size: 14
+                                    },
+                                    color: '#475569'
+                                },
+                                ticks: {
+                                    display: false,
+                                    color: '#475569'
+                                },
+                                grid: {
+                                    color: 'rgba(226, 232, 240, 0.5)'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Project Component',
+                                    font: {
+                                        size: 14
+                                    },
+                                    color: '#475569'
+                                },
+                                ticks: {
+                                    color: '#475569',
+                                    callback: function(value, index, values) {
+                                        const label = this.getLabelForValue(value);
+                                        const maxLength = 20;
+                                        if (label.length > maxLength) {
+                                            return label.split(' ').reduce((acc, word) => {
+                                                if (acc.length === 0 || acc[acc.length - 1].length + word.length + 1 > maxLength) {
+                                                    acc.push(word);
+                                                } else {
+                                                    acc[acc.length - 1] += ' ' + word;
+                                                }
+                                                return acc;
+                                            }, []);
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            init();
+        });
+    </script>
+</body>
+</html>
+
